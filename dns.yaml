@@ -1,0 +1,226 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: dns
+  labels:
+    name: dns
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: dns
+  labels:
+    app: cloudflared
+
+spec:
+  replicas: 2
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      terminationGracePeriodSeconds: 60
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 127.0.0.1
+      containers:
+        - name: cloudflared
+          image: hellopeera/cloudflared:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 53
+              protocol: UDP
+          env:
+            - name: TZ
+              value: Asia/Bangkok
+            - name: TUNNEL_DNS_UPSTREAM
+              value: https://cloudflare-dns.com/dns-query,https://1.1.1.1/dns-query,https://1.0.0.1/dns-query
+            - name: TUNNEL_DNS_BOOTSTRAP
+              value: https://1.1.1.1/dns-query,https://1.0.0.1/dns-query
+          args: ['proxy-dns']
+          startupProbe:
+            tcpSocket:
+              port: 53
+            failureThreshold: 12
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 53
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+              - dig
+              - '+norecurse'
+              - '+retry=0'
+              - '@127.0.0.1'
+              - google.com
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 10
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudflared-service
+  namespace: dns
+spec:
+  selector:
+    app: cloudflared
+  ports:
+    - port: 53
+      protocol: UDP
+  type: ClusterIP
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pihole-config-pvc
+  namespace: dns
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pihole-dnsmasq-pvc
+  namespace: dns
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole
+  namespace: dns
+  labels:
+    app: pihole
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: pihole
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: pihole
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: pihole
+          image: pihole/pihole:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 53
+              protocol: UDP
+          volumeMounts:
+            - name: config-vol
+              mountPath: /etc/pihole
+            - name: dnsmasq-vol
+              mountPath: /etc/dnsmasq.d
+          env:
+            - name: PIHOLE_DNS_
+              value: $(CLOUDFLARED_SERVICE_SERVICE_HOST)#$(CLOUDFLARED_SERVICE_SERVICE_PORT)
+          startupProbe:
+            httpGet:
+              path: /admin/
+              port: 80
+            failureThreshold: 12
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /admin/
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+              - dig
+              - '+norecurse'
+              - '+retry=0'
+              - '@127.0.0.1'
+              - google.com
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 10
+      volumes:
+        - name: config-vol
+          persistentVolumeClaim:
+            claimName: pihole-config-pvc
+        - name: dnsmasq-vol
+          persistentVolumeClaim:
+            claimName: pihole-dnsmasq-pvc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-admin-service
+  namespace: dns
+spec:
+  selector:
+    app: pihole
+  ports:
+    - port: 80
+      protocol: TCP
+  type: LoadBalancer
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-dns-service
+  namespace: dns
+spec:
+  selector:
+    app: pihole
+  ports:
+    - port: 53
+      protocol: UDP
+  type: LoadBalancer
+  # https://kubernetes.io/docs/tutorials/services/source-ip/
+  externalTrafficPolicy: Local
+
+---
