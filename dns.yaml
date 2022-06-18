@@ -88,6 +88,16 @@ spec:
 
 ---
 
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-path-retain
+provisioner: rancher.io/local-path
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+
+---
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -96,7 +106,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: local-path-retain
   resources:
     requests:
       storage: 2Gi
@@ -111,7 +121,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: local-path-retain
   resources:
     requests:
       storage: 2Gi
