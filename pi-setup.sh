@@ -56,7 +56,7 @@ ln -s /usr/share/zoneinfo/Asia/Bangkok /etc/localtime
 sed -i -r 's/^PASS_MAX_DAYS.+$/PASS_MAX_DAYS   90/' /etc/login.defs
 sed -i -r 's/^PASS_MIN_DAYS.+$/PASS_MIN_DAYS   1/' /etc/login.defs
 sed -i -r 's/^PASS_MIN_LEN.+$/PASS_MIN_LEN    8/' /etc/login.defs
-sed -i -r 's/^PASS_WARN_AGE.+$/PASS_WARN_AGE   7/' c
+sed -i -r 's/^PASS_WARN_AGE.+$/PASS_WARN_AGE   7/' /etc/login.defs
 sed -i -r 's/^UMASK.+$/UMASK           027/' /etc/login.defs
 cat /etc/shadow | awk -F: '{print $1}' | while read u; do chage -m -1 $u; done
 
