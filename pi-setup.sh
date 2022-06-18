@@ -205,8 +205,8 @@ usermod -aG docker app
 
 # Upgrade libseccomp2 for newer docker reqs
 # https://github.com/docker/for-linux/issues/1196
-curl -O http://http.us.debian.org/debian/pool/main/libs/libseccomp/libseccomp2_2.5.1-1_armhf.deb
-dpkg --install libseccomp2_2.5.1-1_armhf.deb
+# curl -O http://http.us.debian.org/debian/pool/main/libs/libseccomp/libseccomp2_2.5.1-1_armhf.deb
+# dpkg --install libseccomp2_2.5.1-1_armhf.deb
 
 
 # Install docker-compose
