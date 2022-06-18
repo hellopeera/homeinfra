@@ -220,7 +220,7 @@ chmod 750 /usr/local/bin/docker-compose
 chown root:docker /usr/local/bin/docker-compose
 
 # Install k3s
-node_ip=$(ip -br address | grep eth0 | awk '{print $NF}' | cut -d/ -f1)
+node_ip=$(ip -br address | grep eth0 | egrep -o '[0-9\.]+/' | cut -d/ -f1)
 cgroup_driver=$(docker info 2>/dev/null | sed -rn 's/^.*Cgroup Driver: (.*)$/\1/p')
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.20.10+k3s1 sh -s - server \
   --node-name ${node_ip} \
