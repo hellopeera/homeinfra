@@ -93,6 +93,10 @@ sed -i -r '/^vm.swappiness/ d' /etc/sysctl.conf
 echo 'vm.swappiness = 1' >> /etc/sysctl.conf
 sed -i '/net.ipv4.tcp_retries2/ d'  /etc/sysctl.conf
 echo 'net.ipv4.tcp_retries2 = 5' >> /etc/sysctl.conf
+sed -i '/net.core.rmem_max = 2500000/ d'  /etc/sysctl.conf
+echo 'net.core.rmem_max = 2500000' >> /etc/sysctl.conf
+sed -i '/net.core.wmem_max = 2500000/ d'  /etc/sysctl.conf
+echo 'net.core.wmem_max = 2500000' >> /etc/sysctl.conf
 # sed -i '/net.netfilter.nf_conntrack_max/ d' /etc/sysctl.conf
 # echo 'net.netfilter.nf_conntrack_max = 262144' >> /etc/sysctl.conf
 # echo 65536 > /sys/module/nf_conntrack/parameters/hashsize
