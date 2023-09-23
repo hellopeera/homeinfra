@@ -1,0 +1,48 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: networking
+  labels:
+    name: networking
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared-tunnel
+  namespace: networking
+  labels:
+    app: cloudflared-tunnel
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: cloudflared-tunnel
+  template:
+    metadata:
+      labels:
+        app: cloudflared-tunnel
+    spec:
+      containers:
+        - name: cloudflared-tunnel
+          image: cloudflare/cloudflared:latest
+          imagePullPolicy: Always
+          args:
+            - 'tunnel'
+            - '--no-autoupdate'
+            - 'run'
+          env:
+            - name: TZ
+              value: Asia/Bangkok
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-tunnel-secret
+                  key: tunnel-token
+      securityContext:
+        sysctls:
+          - name: net.ipv4.ping_group_range
+            value: '65532 65532'
+
